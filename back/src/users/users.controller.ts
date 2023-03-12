@@ -29,7 +29,11 @@ export class UsersController {
   postUsers(
     @Body() data: JoinRequestDto, //
   ) {
-    this.usersService.postUsers(data.email, data.nickname, data.password);
+    return this.usersService.postUsers(
+      data.email,
+      data.nickname,
+      data.password,
+    );
   }
 
   @ApiResponse({

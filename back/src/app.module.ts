@@ -9,6 +9,12 @@ import { UsersModule } from './users/users.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ChannelMembers } from './entities/ChannelMembers';
 import { Channels } from './entities/Channels';
+import { Users } from './entities/Users';
+import { ChannelChats } from './entities/ChannelChats';
+import { DMs } from './entities/DMs';
+import { Mentions } from './entities/Mentions';
+import { WorkspaceMembers } from './entities/WorkspaceMembers';
+import { Workspaces } from './entities/Workspaces';
 
 @Module({
   imports: [
@@ -24,10 +30,20 @@ import { Channels } from './entities/Channels';
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_DATABASE,
-      entities: ['entities/*.js'],
-      synchronize: true,
+      autoLoadEntities: true,
+      synchronize: false,
       logging: true,
     }),
+    TypeOrmModule.forFeature([
+      Users,
+      ChannelMembers,
+      Channels,
+      ChannelChats,
+      DMs,
+      Mentions,
+      WorkspaceMembers,
+      Workspaces,
+    ]),
   ],
   controllers: [AppController],
   providers: [AppService, ConfigService],
