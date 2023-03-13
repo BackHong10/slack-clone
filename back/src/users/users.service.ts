@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Users } from 'src/entities/Users';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import { response } from 'express';
 @Injectable()
 export class UsersService {
   constructor(
@@ -10,9 +11,9 @@ export class UsersService {
     private readonly usersRepository: Repository<Users>,
   ) {}
   async postUsers(email: string, nickname: string, password: string) {
-    if (!email || !nickname || !password) {
-      throw new ConflictException('회원정보를 제대로 입력해 주십시오.');
-    }
+    // if (!email || !nickname || !password) {
+    //   throw new ConflictException('회원정보를 제대로 입력해 주십시오.');
+    // }
     const user = await this.usersRepository.findOne({
       where: {
         email,
@@ -31,6 +32,10 @@ export class UsersService {
       password: hashedPassword,
     });
 
-    return '회원가입 성공!';
+    return response.json({
+      success: true,
+      code: 200,
+      data: '성공',
+    });
   }
 }
