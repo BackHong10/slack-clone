@@ -15,6 +15,7 @@ import { DMs } from './entities/DMs';
 import { Mentions } from './entities/Mentions';
 import { WorkspaceMembers } from './entities/WorkspaceMembers';
 import { Workspaces } from './entities/Workspaces';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { Workspaces } from './entities/Workspaces';
     ChannelsModule,
     WorkspacesModule,
     UsersModule,
+    AuthModule,
     TypeOrmModule.forRoot({
       type: 'mysql',
       host: process.env.DB_HOST,
