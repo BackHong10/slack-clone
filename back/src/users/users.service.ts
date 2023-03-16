@@ -1,20 +1,31 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Users } from 'src/entities/Users';
-import { Repository } from 'typeorm';
+import { Connection, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { response } from 'express';
+import { WorkspaceMembers } from 'src/entities/WorkspaceMembers';
+import { ChannelMembers } from 'src/entities/ChannelMembers';
+
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(Users)
     private readonly usersRepository: Repository<Users>,
+
+    @InjectRepository(WorkspaceMembers)
+    private readonly workSpaceMembersRepository: Repository<WorkspaceMembers>,
+
+    @InjectRepository(ChannelMembers)
+    private readonly channelMembersRepository: Repository<ChannelMembers>,
+
+    private readonly connection: Connection,
   ) {}
   async postUsers(email: string, nickname: string, password: string) {
-    // if (!email || !nickname || !password) {
-    //   throw new ConflictException('회원정보를 제대로 입력해 주십시오.');
-    // }
-    const user = await this.usersRepository.findOne({
+    const queryRunner = this.connection.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    const user = await queryRunner.manager.getRepository(Users).findOne({
       where: {
         email,
       },
@@ -26,16 +37,29 @@ export class UsersService {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await this.usersRepository.save({
-      email,
-      nickname,
-      password: hashedPassword,
-    });
+    try {
+      const returned = await queryRunner.manager.getRepository(Users).save({
+        email,
+        nickname,
+        password: hashedPassword,
+      });
+      await queryRunner.manager.getRepository(WorkspaceMembers).save({
+        UserId: returned.id,
+        WorkspaceId: 1,
+      });
 
-    return response.json({
-      success: true,
-      code: 200,
-      data: '성공',
-    });
+      await queryRunner.manager.getRepository(ChannelMembers).save({
+        UserId: returned.id,
+        ChannelId: 1,
+      });
+
+      await queryRunner.commitTransaction();
+    } catch (err) {
+      console.log(err);
+      await queryRunner.rollbackTransaction();
+    } finally {
+      await queryRunner.release();
+    }
+    return true;
   }
 }

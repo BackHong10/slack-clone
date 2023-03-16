@@ -33,11 +33,16 @@ async function bootstrap() {
 
   app.use(passport.initialize());
   app.use(passport.session());
+  app.enableCors({
+    origin: true,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: true,
+  });
 
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
-  await app.listen(3000, () => {
-    console.log('3000번 포트로 서버가 열렸습니다.');
+  await app.listen(3095, () => {
+    console.log('3095번 포트로 서버가 열렸습니다.');
   });
 
   if (module.hot) {

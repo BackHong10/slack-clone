@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Post,
+  Res,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
@@ -34,14 +35,10 @@ export class UsersController {
 
   @ApiOperation({ summary: '회원가입' })
   @Post()
-  postUsers(
+  async postUsers(
     @Body() data: JoinRequestDto, //
   ) {
-    return this.usersService.postUsers(
-      data.email,
-      data.nickname,
-      data.password,
-    );
+    await this.usersService.postUsers(data.email, data.nickname, data.password);
   }
 
   @ApiResponse({
@@ -54,8 +51,9 @@ export class UsersController {
   @Post('login')
   logIn(
     @User() user, //
+    @Res() res,
   ) {
-    console.log('로그인');
+    res.send('로그인 성공');
   }
 
   @ApiResponse({
