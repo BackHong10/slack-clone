@@ -1,25 +1,55 @@
-import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import * as passport from 'passport';
-import * as session from 'express-session';
-import { AppModule } from './app.module';
-import { HttpExceptionFilter } from './httpexception.filter';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import passport from 'passport';
+import cookieParser from 'cookie-parser';
+import session from 'express-session';
+import path from 'path';
+import { ValidationPipe } from '@nestjs/common';
 
-declare const module: any; // new !
+import { AppModule } from './app.module';
+import { HttpExceptionFilter } from './http-exception.filter';
+
+declare const module: any;
+
 async function bootstrap() {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+    }),
+  );
+  app.enableCors({
+    origin: true,
+    credentials: true,
+  });
+  app.useStaticAssets(
+    process.env.NODE_ENV === 'production'
+      ? path.join(__dirname, '..', '..', 'uploads')
+      : path.join(__dirname, '..', 'uploads'),
+    {
+      prefix: '/uploads',
+    },
+  );
+  app.useStaticAssets(
+    process.env.NODE_ENV === 'production'
+      ? path.join(__dirname, '..', '..', 'public')
+      : path.join(__dirname, '..', 'public'),
+    {
+      prefix: '/dist',
+    },
+  );
   const config = new DocumentBuilder()
     .setTitle('Sleact API')
-    .setDescription('슬리액트 개발을 위한 문서입니다.')
+    .setDescription('Sleact 개발을 위한 API 문서입니다.')
     .setVersion('1.0')
-    .addTag('Sleact')
     .addCookieAuth('connect.sid')
     .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, document);
 
-  const app = await NestFactory.create(AppModule);
-  app.useGlobalPipes(new ValidationPipe());
-  app.useGlobalFilters(new HttpExceptionFilter());
-
+  app.use(cookieParser());
   app.use(
     session({
       resave: false,
@@ -30,25 +60,16 @@ async function bootstrap() {
       },
     }),
   );
-
   app.use(passport.initialize());
   app.use(passport.session());
-  app.enableCors({
-    origin: true,
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    credentials: true,
-  });
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
-  await app.listen(3095, () => {
-    console.log('3095번 포트로 서버가 열렸습니다.');
-  });
+  const PORT = process.env.PORT || 3095;
+  await app.listen(PORT);
+  console.log(`server listening on port ${PORT}`);
 
   if (module.hot) {
-    // new !
-    module.hot.accept(); // new !
-    module.hot.dispose(() => app.close()); // new !
+    module.hot.accept();
+    module.hot.dispose(() => app.close());
   }
 }
 bootstrap();

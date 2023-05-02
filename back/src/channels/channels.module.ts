@@ -1,24 +1,26 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ChannelMembers } from 'src/entities/ChannelMembers';
-import { Channels } from 'src/entities/Channels';
-import { Users } from 'src/entities/Users';
-import { WorkspaceMembers } from 'src/entities/WorkspaceMembers';
-import { Workspaces } from 'src/entities/Workspaces';
-import { ChannelsController } from './channels.controller';
+import { ChannelChats } from '../entities/ChannelChats';
+import { ChannelMembers } from '../entities/ChannelMembers';
+import { Channels } from '../entities/Channels';
+import { Users } from '../entities/Users';
+import { Workspaces } from '../entities/Workspaces';
 import { ChannelsService } from './channels.service';
+import { ChannelsController } from './channels.controller';
+import { EventsModule } from '../events/events.module';
 
 @Module({
-  controllers: [ChannelsController],
-  providers: [ChannelsService],
   imports: [
     TypeOrmModule.forFeature([
+      Channels,
+      ChannelChats,
       Users,
-      WorkspaceMembers,
       Workspaces,
       ChannelMembers,
-      Channels,
     ]),
+    EventsModule,
   ],
+  providers: [ChannelsService],
+  controllers: [ChannelsController],
 })
 export class ChannelsModule {}

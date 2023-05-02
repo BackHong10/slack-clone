@@ -1,5 +1,5 @@
 import { DataSource } from 'typeorm';
-import * as dotenv from 'dotenv';
+import dotenv from 'dotenv';
 import { ChannelChats } from './src/entities/ChannelChats';
 import { ChannelMembers } from './src/entities/ChannelMembers';
 import { Channels } from './src/entities/Channels';
@@ -13,7 +13,7 @@ dotenv.config();
 
 const dataSource = new DataSource({
   type: 'mysql',
-  host: process.env.DB_HOST,
+  host: 'localhost',
   port: 3306,
   username: process.env.DB_USERNAME,
   password: process.env.DB_PASSWORD,
@@ -33,7 +33,5 @@ const dataSource = new DataSource({
   synchronize: false,
   logging: true,
 });
-
-// dataSource.connect();
 
 export default dataSource;

@@ -1,37 +1,31 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ChannelMembers } from 'src/entities/ChannelMembers';
-import { Channels } from 'src/entities/Channels';
-import { Users } from 'src/entities/Users';
-import { WorkspaceMembers } from 'src/entities/WorkspaceMembers';
-import { Workspaces } from 'src/entities/Workspaces';
-import { Repository } from 'typeorm';
+import { MoreThan, Repository } from 'typeorm';
+import { ChannelChats } from '../entities/ChannelChats';
+import { ChannelMembers } from '../entities/ChannelMembers';
+import { Channels } from '../entities/Channels';
+import { Users } from '../entities/Users';
+import { Workspaces } from '../entities/Workspaces';
+import { EventsGateway } from '../events/events.gateway';
 
 @Injectable()
 export class ChannelsService {
   constructor(
-    @InjectRepository(Users)
-    private readonly usesRepository: Repository<Users>,
-
-    @InjectRepository(WorkspaceMembers)
-    private readonly workspaceMembersRepository: Repository<WorkspaceMembers>,
-
-    @InjectRepository(Workspaces)
-    private readonly workspacesRepository: Repository<Workspaces>,
-
-    @InjectRepository(ChannelMembers)
-    private readonly channelMembersRepository: Repository<ChannelMembers>,
-
     @InjectRepository(Channels)
-    private readonly channelsRepository: Repository<Channels>,
+    private channelsRepository: Repository<Channels>,
+    @InjectRepository(ChannelMembers)
+    private channelMembersRepository: Repository<ChannelMembers>,
+    @InjectRepository(Workspaces)
+    private workspacesRepository: Repository<Workspaces>,
+    @InjectRepository(ChannelChats)
+    private channelChatsRepository: Repository<ChannelChats>,
+    @InjectRepository(Users)
+    private usersRepository: Repository<Users>,
+    private readonly eventsGateway: EventsGateway,
   ) {}
 
   async findById(id: number) {
-    return this.channelsRepository.findOne({
-      where: {
-        id,
-      },
-    });
+    return this.channelsRepository.findOne({ where: { id } });
   }
 
   async getWorkspaceChannels(url: string, myId: number) {
@@ -39,22 +33,29 @@ export class ChannelsService {
       .createQueryBuilder('channels')
       .innerJoinAndSelect(
         'channels.ChannelMembers',
-        'cm',
-        'cm.userId = :myId',
+        'channelMembers',
+        'channelMembers.userId = :myId',
         { myId },
       )
-      .innerJoinAndSelect('channels.Workspace', 'w', 'w.url = :url', { url })
+      .innerJoinAndSelect(
+        'channels.Workspace',
+        'workspace',
+        'workspace.url = :url',
+        { url },
+      )
       .getMany();
   }
 
   async getWorkspaceChannel(url: string, name: string) {
-    return this.channelsRepository.findOne({
-      where: {
-        name,
-      },
-      relations: ['Workspace'],
-    });
+    return this.channelsRepository
+      .createQueryBuilder('channel')
+      .innerJoin('channel.Workspace', 'workspace', 'workspace.url = :url', {
+        url,
+      })
+      .where('channel.name = :name', { name })
+      .getOne();
   }
+
   async createWorkspaceChannels(url: string, name: string, myId: number) {
     const workspace = await this.workspacesRepository.findOne({
       where: { url },
@@ -70,7 +71,7 @@ export class ChannelsService {
   }
 
   async getWorkspaceChannelMembers(url: string, name: string) {
-    return this.usesRepository
+    return this.usersRepository
       .createQueryBuilder('user')
       .innerJoin('user.Channels', 'channels', 'channels.name = :name', {
         name,
@@ -92,7 +93,7 @@ export class ChannelsService {
     if (!channel) {
       return null; // TODO: 이 때 어떻게 에러 발생?
     }
-    const user = await this.usesRepository
+    const user = await this.usersRepository
       .createQueryBuilder('user')
       .where('user.email = :email', { email })
       .innerJoin('user.Workspaces', 'workspace', 'workspace.url = :url', {

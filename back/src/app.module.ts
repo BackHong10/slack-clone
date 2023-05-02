@@ -1,53 +1,72 @@
-import { Module } from '@nestjs/common';
+import {
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  RequestMethod,
+} from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule } from '@nestjs/config';
+
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { DmsModule } from './dms/dms.module';
-import { ChannelsModule } from './channels/channels.module';
-import { WorkspacesModule } from './workspaces/workspaces.module';
+import { AuthModule } from './auth/auth.module';
+import { LoggerMiddleware } from './middlewares/logger.middleware';
 import { UsersModule } from './users/users.module';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { WorkspacesModule } from './workspaces/workspaces.module';
+import { ChannelsModule } from './channels/channels.module';
+import { DMsModule } from './dms/dms.module';
+import { FrontendMiddleware } from './middlewares/frontend.middleware';
+import { ChannelChats } from './entities/ChannelChats';
 import { ChannelMembers } from './entities/ChannelMembers';
 import { Channels } from './entities/Channels';
-import { Users } from './entities/Users';
-import { ChannelChats } from './entities/ChannelChats';
 import { DMs } from './entities/DMs';
 import { Mentions } from './entities/Mentions';
+import { Users } from './entities/Users';
 import { WorkspaceMembers } from './entities/WorkspaceMembers';
 import { Workspaces } from './entities/Workspaces';
-import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    DmsModule,
-    ChannelsModule,
-    WorkspacesModule,
-    UsersModule,
-    AuthModule,
     TypeOrmModule.forRoot({
       type: 'mysql',
-      host: process.env.DB_HOST,
+      host: 'localhost',
       port: 3306,
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_DATABASE,
       autoLoadEntities: true,
-      synchronize: false,
+      entities: [
+        ChannelChats,
+        ChannelMembers,
+        Channels,
+        DMs,
+        Mentions,
+        Users,
+        WorkspaceMembers,
+        Workspaces,
+      ],
+      keepConnectionAlive: true,
+      migrations: [__dirname + '/migrations/*.ts'],
+      charset: 'utf8mb4_general_ci',
+      synchronize: true,
       logging: true,
     }),
-    TypeOrmModule.forFeature([
-      Users,
-      ChannelMembers,
-      Channels,
-      ChannelChats,
-      DMs,
-      Mentions,
-      WorkspaceMembers,
-      Workspaces,
-    ]),
+    AuthModule,
+    UsersModule,
+    WorkspacesModule,
+    ChannelsModule,
+    DMsModule,
   ],
   controllers: [AppController],
-  providers: [AppService, ConfigService],
+  providers: [AppService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(LoggerMiddleware).forRoutes('*');
+    consumer.apply(FrontendMiddleware).forRoutes({
+      path: '/**',
+      method: RequestMethod.ALL,
+    });
+  }
+}
